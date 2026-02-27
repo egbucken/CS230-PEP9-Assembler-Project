@@ -1,4 +1,3 @@
-import java.lang.reflect.Array;
 import java.util.*;
 import java.io.*;
 
@@ -39,13 +38,16 @@ public class pepasm {
             throw new RuntimeException(e);
         }
 
-        for (int line = 0; line < sourceLines.size(); line++) {
+        //start building the final output line by line
+        for (String line : sourceLines) {
             //put in the mnemonic
-            finalObjectCode.append(mnemonicToHex(sourceLines.get(line).substring(0,3), getAssigningMode(sourceLines.get(line))));
+            String mnemonic = line.split("\\s+")[0].toUpperCase(); //in human this basically is getting the first word of the string. found on google.
+            finalObjectCode.append(mnemonicToHex(mnemonic, getAddressingMode(line)));
             finalObjectCode.append(" ");
+
             //put in the hex value if it is relevant
-            if (sourceLines.get(line).length() > 5) {
-                finalObjectCode.append(formatHexForObjectCode(sourceLines.get(line)));
+            if (formatHexForObjectCode(line) != null) {
+                finalObjectCode.append(formatHexForObjectCode(line));
                 finalObjectCode.append(" ");
             }
 
@@ -94,7 +96,7 @@ public class pepasm {
         }
     }
 
-    public static String getAssigningMode(String line) {
+    public static String getAddressingMode(String line) {
         if (line.charAt(line.length() - 1) == 'i') {
             return "i";
         } else if (line.charAt(line.length() - 1) == 'd') {
@@ -105,6 +107,32 @@ public class pepasm {
     }
 
     public static String formatHexForObjectCode(String line) {
-        return null;
+        // Split into mnemonic + operand
+        String[] parts = line.split("\\s+", 2);
+        if (parts.length < 2) {
+            return null; // no operand at all
+        }
+        String operandPart = parts[1].trim();
+
+        // Strip addressing mode if present: "0x0011, i" → "0x0011"
+        int commaIndex = operandPart.indexOf(',');
+        if (commaIndex != -1) {
+            operandPart = operandPart.substring(0, commaIndex).trim();
+        }
+
+        // Must start with 0x
+        if (!operandPart.startsWith("0x")) {
+            return null;
+        }
+
+        // Extract hex digits
+        String hex = operandPart.substring(2).toUpperCase();
+        // Pep9 operands must be exactly 4 hex digits
+        if (hex.length() != 4) {
+            return null;
+        }
+
+        // Format as "AA BB"
+        return hex.substring(0, 2) + " " + hex.substring(2, 4);
     }
 }
