@@ -1,3 +1,4 @@
+import java.lang.reflect.Array;
 import java.util.*;
 import java.io.*;
 
@@ -9,6 +10,7 @@ public class pepasm {
             return;
         }
         ArrayList<String> sourceLines = new ArrayList<>();
+        StringBuilder finalObjectCode = new StringBuilder();
         HashMap<String, Integer> labelTable = new HashMap<>();
         int currentAddress = 0;
         try {
@@ -17,7 +19,7 @@ public class pepasm {
             while (fileScanner.hasNextLine()) {
                 String line = fileScanner.nextLine().split(";")[0].trim();
                 if (line.isEmpty() || line.startsWith(".END")) continue;
-                if (line.contains(":")) {
+                if (line.contains(":")) {// if the line has a label
                     String[] parts = line.split(":");
                     labelTable.put(parts[0].trim(), currentAddress);
                     line = (parts.length > 1) ? parts[1].trim() : "";
@@ -36,10 +38,21 @@ public class pepasm {
         catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        // pass 2 (use string builder for ASLA AND ASRA)
+
+        for (int line = 0; line < sourceLines.size(); line++) {
+            //put in the mnemonic
+            finalObjectCode.append(mnemonicToHex(sourceLines.get(line).substring(0,3), getAssigningMode(sourceLines.get(line))));
+            finalObjectCode.append(" ");
+            //put in the hex value if it is relevant
+            if (sourceLines.get(line).length() > 5) {
+                finalObjectCode.append(formatHexForObjectCode(sourceLines.get(line)));
+                finalObjectCode.append(" ");
+            }
+
+        }
     }
 
-    public String mnemonicToHex(String mnemonic, String addressingMode) {
+    public static String mnemonicToHex(String mnemonic, String addressingMode) {
         switch (mnemonic) {
             case "STBA":
                 return "F1";
@@ -79,5 +92,19 @@ public class pepasm {
                 return "1A";
             default: return "00";
         }
+    }
+
+    public static String getAssigningMode(String line) {
+        if (line.charAt(line.length() - 1) == 'i') {
+            return "i";
+        } else if (line.charAt(line.length() - 1) == 'd') {
+            return "d";
+        } else {
+            return null;
+        }
+    }
+
+    public static String formatHexForObjectCode(String line) {
+        return null;
     }
 }
