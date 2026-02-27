@@ -45,6 +45,13 @@ public class pepasm {
             finalObjectCode.append(mnemonicToHex(mnemonic, getAddressingMode(line)));
             finalObjectCode.append(" ");
 
+            //Substitute labels for their addresses
+            String operandHex = resolveOperand(line, labelTable);
+            if (operandHex != null) {
+                finalObjectCode.append(operandHex);
+                finalObjectCode.append(" ");
+            }
+
             //put in the hex value if it is relevant
             if (formatHexForObjectCode(line) != null) {
                 finalObjectCode.append(formatHexForObjectCode(line));
@@ -135,4 +142,38 @@ public class pepasm {
         // Format as "AA BB"
         return hex.substring(0, 2) + " " + hex.substring(2, 4);
     }
+
+    public static String resolveOperand(String line, HashMap<String, Integer> labelTable) {
+        // Split into mnemonic + operand
+        String[] parts = line.split("\\s+", 2);
+        if (parts.length < 2) {
+            return null; // no operand
+        }
+
+        String operand = parts[1].trim();
+
+        // Strip addressing mode: "label, d" → "label"
+        int commaIndex = operand.indexOf(',');
+        if (commaIndex != -1) {
+            operand = operand.substring(0, commaIndex).trim();
+        }
+
+        // Case 1: literal hex operand
+        if (operand.startsWith("0x")) {
+            String hex = operand.substring(2).toUpperCase();
+            if (hex.length() != 4) return null;
+            return hex.substring(0, 2) + " " + hex.substring(2, 4);
+        }
+
+        // Case 2: label operand
+        if (labelTable.containsKey(operand)) {
+            int address = labelTable.get(operand);
+            String hex = String.format("%04X", address);
+            return hex.substring(0, 2) + " " + hex.substring(2, 4);
+        }
+
+        // Unknown operand
+        return null;
+    }
+
 }
